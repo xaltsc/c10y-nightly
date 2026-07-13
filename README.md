@@ -14,3 +14,6 @@ In order to use it, point your `continuwuity` input to this repo `github:xaltsc/
 sure to use a nightly cached version.
 
 This flake reexposes Continuwuity's packages through `.packages`. These are the same ones as upstream.
+
+A [`weekly`](https://github.com/xaltsc/c10y-nightly/releases/tag/weekly) tag is available for those
+who want less nightly builds. Builds from this commit are pinned on cachix for a week.
