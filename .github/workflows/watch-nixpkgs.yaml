@@ -1,0 +1,28 @@
+name: Watch nixpkgs updates
+
+on:
+    schedule:
+        - cron: '17 * * * *'
+    workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+    watch-for-updates:
+        runs-on: ubuntu-latest
+        outputs:
+            changed: ${{ steps.update.outputs.changed }}
+        steps:
+          - uses: actions/checkout@v7
+          - name: Check for nixpkgs updates
+            id: update
+            uses: ./.github/actions/flake-update
+            with:
+              inputs: "nixpkgs"
+
+    maybe-update-nightly:
+        needs: watch-for-updates
+        if: needs.watch-for-updates.outputs.changed == 'true'
+        uses: ./.github/workflows/nightly.yaml
+        secrets: inherit

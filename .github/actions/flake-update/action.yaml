@@ -1,0 +1,45 @@
+name: Update some flake inputs
+description: Common flake input update tasks
+
+
+inputs:
+  inputs:
+    required: true
+
+outputs:
+  changed:
+    value: ${{ steps.update.outputs.changed }}
+
+permissions:
+  contents: write
+
+runs:
+  using: composite
+  steps:
+    - name: Configure git identity
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+    - name: Install Nix
+      uses: samueldr/lix-gha-installer-action@v2026-06-15
+      with:
+        extra_nix_config: experimental-features = nix-command flakes flake-self-attrs
+
+    - name: Update flake.lock
+      shell: bash
+      id: update
+      env:
+        INPUTS: ${{ inputs.inputs }}
+      run: |
+        nix flake update $INPUTS
+        if ! git diff --quiet flake.lock; then
+          echo "Inputs '${INPUTS}' not up to date"
+          git add flake.lock
+          git commit -m "flake(auto): ${{ inputs.inputs }} update $(date -u +%Y-%m-%d)"
+          git push origin main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Inputs '${INPUTS}' already up to date"
+        fi

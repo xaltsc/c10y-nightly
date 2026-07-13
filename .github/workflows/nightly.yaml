@@ -1,0 +1,96 @@
+name: Nightly builds
+
+on:
+  schedule:
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-reset
+  cancel-in-progress: false
+
+jobs:
+  update-flake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Update flake.lock
+        uses: ./.github/actions/flake-update
+        with:
+          inputs: "nixpkgs c10y flake-parts"
+
+  build-rocksdb:
+    needs: update-flake
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: ./.github/actions/build+cache
+        with:
+          cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          package: rocksdb
+
+  build-artifacts:
+    needs: build-rocksdb
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        package:
+          - default
+          - max-perf
+          - max-perf-haswell
+        suffix:
+          - ""
+          - "-static-aarch64"
+          - "-static-x86_64"
+
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: ./.github/actions/build+cache
+        with:
+          cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          package: "${{ matrix.package }}${{ matrix.suffix }}.cargoArtifacts"
+
+  build:
+    needs: build-artifacts
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        package:
+          - default
+          - max-perf
+          - max-perf-haswell
+        suffix:
+          - ""
+          - "-static-aarch64"
+          - "-static-x86_64"
+
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Increase swap
+        run: |
+          SWAPFILE=/newswapfile
+          sudo fallocate -l 30G $SWAPFILE
+          sudo chmod 600 $SWAPFILE
+          sudo mkswap $SWAPFILE
+          sudo swapon $SWAPFILE
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: ./.github/actions/build+cache
+        with:
+          cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          package: "${{ matrix.package }}${{ matrix.suffix }}"

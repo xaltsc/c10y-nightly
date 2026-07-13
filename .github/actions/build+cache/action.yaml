@@ -1,0 +1,29 @@
+name: Build an output and cache it
+description: Common flake input update tasks
+
+
+inputs:
+  cachix-token:
+    required: true
+  package:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Nix
+      uses: samueldr/lix-gha-installer-action@v2026-06-15
+      with:
+        extra_nix_config: experimental-features = nix-command flakes flake-self-attrs
+
+    - uses: cachix/cachix-action@v17
+      with:
+        name: xaltsc-c10y
+        authToken: ${{ inputs.cachix-token }}
+
+    - name: Build the package
+      shell: bash
+      env:
+        PKG: ${{ inputs.package }}
+      run: |
+        nix build .#${PKG}
