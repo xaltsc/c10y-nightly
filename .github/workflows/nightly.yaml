@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: nightly-reset
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   update-flake:
