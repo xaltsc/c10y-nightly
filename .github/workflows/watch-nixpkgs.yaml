@@ -11,8 +11,6 @@ permissions:
 jobs:
     watch-for-updates:
         runs-on: ubuntu-latest
-        outputs:
-            changed: ${{ steps.update.outputs.changed }}
         steps:
           - uses: actions/checkout@v7
           - name: Check for nixpkgs updates
@@ -20,9 +18,7 @@ jobs:
             uses: ./.github/actions/flake-update
             with:
               inputs: "nixpkgs"
-
-    maybe-update-nightly:
-        needs: watch-for-updates
-        if: needs.watch-for-updates.outputs.changed == 'true'
-        uses: ./.github/workflows/nightly.yaml
-        secrets: inherit
+          - run: gh workflow run nightly.yaml --ref main
+            if: steps.update.outputs.changed == 'true'
+            env:
+              GH_TOKEN: ${{ secrets.GH_PAT }}

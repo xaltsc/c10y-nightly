@@ -28,6 +28,7 @@ jobs:
   build-rocksdb:
     needs: update-flake
     strategy:
+      fail-fast: false
       matrix:
         runner: [ubuntu-latest, ubuntu-24.04-arm]
     runs-on: ${{ matrix.runner }}
@@ -40,9 +41,10 @@ jobs:
           cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           package: rocksdb
 
-  build-artifacts:
+  build:
     needs: build-rocksdb
     strategy:
+      fail-fast: false
       matrix:
         runner: [ubuntu-latest, ubuntu-24.04-arm]
         package:
@@ -53,66 +55,10 @@ jobs:
           - ""
           - "-static-aarch64"
           - "-static-x86_64"
-
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Increase swap
-        run: |
-          SWAPFILE=/newswapfile
-          sudo fallocate -l 10G $SWAPFILE
-          sudo chmod 600 $SWAPFILE
-          sudo mkswap $SWAPFILE
-          sudo swapon $SWAPFILE
-      - uses: actions/checkout@v7
-        with:
-          ref: main
-      - uses: ./.github/actions/build+cache
-        with:
-          cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          package: "${{ matrix.package }}${{ matrix.suffix }}.cargoArtifacts"
-
-  build:
-    needs: build-artifacts
-    strategy:
-      matrix:
-        runner: [ubuntu-latest, ubuntu-24.04-arm]
-        package:
-          - default
-          - max-perf
-          - max-perf-haswell
-        suffix:
-          - ""
-          - "-static-aarch64"
-          - "-static-x86_64"
-
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Increase swap
-        run: |
-          SWAPFILE=/newswapfile
-          sudo fallocate -l 30G $SWAPFILE
-          sudo chmod 600 $SWAPFILE
-          sudo mkswap $SWAPFILE
-          sudo swapon $SWAPFILE
-      - uses: actions/checkout@v7
-        with:
-          ref: main
-      - uses: ./.github/actions/build+cache
-        with:
-          cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          package: "${{ matrix.package }}${{ matrix.suffix }}"
-      - name: Tagging weekly and pinning
-        env:
-          PIN: "${{ matrix.package }}${{matrix.suffix}}"
-          RUNNER: "${{ matrix.runner }}"
-          CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-        run: |
-          cachix push xaltsc-c10y result
-          cachix pin xaltsc-c10y "daily-${PIN}-$(uname -m)" result --keep-days 3
-          if [[ "$(date +'%w')" == "1" ]]; then
-            if [[ "${PIN}" == "default" && "${RUNNER}" == "ubuntu-latest" ]]; then
-              git tag weekly
-              git push origin weekly
-            fi
-            cachix pin xaltsc-c10y "weekly-${PIN}-$(uname -m)" result --keep-days 14
-          fi
+    uses: ./.github/workflows/build-package-nightly.yaml
+    secrets:
+      cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    with:
+      runner: ${{ matrix.runner }}
+      package: "${{ matrix.package }}${{ matrix.suffix }}"
+      tag: ${{ matrix.runner == 'ubuntu-latest' && matrix.package == 'default' && matrix.suffix == '' }}

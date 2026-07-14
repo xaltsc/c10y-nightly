@@ -3,10 +3,11 @@ description: Common flake input update tasks
 
 
 inputs:
-  cachix-token:
-    required: true
   package:
     required: true
+  cachix-token:
+    required: true
+
 
 runs:
   using: composite
@@ -14,16 +15,65 @@ runs:
     - name: Install Nix
       uses: samueldr/lix-gha-installer-action@v2026-06-15
       with:
-        extra_nix_config: experimental-features = nix-command flakes flake-self-attrs
+        extra_nix_config: experimental-features = nix-command flakes
 
-    - uses: cachix/cachix-action@v17
-      with:
-        name: xaltsc-c10y
-        authToken: ${{ inputs.cachix-token }}
-
-    - name: Build the package
+    - name: Is result already built?
+      id: check
       shell: bash
       env:
         PKG: ${{ inputs.package }}
       run: |
+        path="$(nix eval --raw ".#${PKG}.outPath")"
+        hash="$(basename "${path}" | cut -d- -f1)"
+
+        base_url="https://xaltsc-c10y.cachix.org"
+
+        if curl -f "${base_url}/${hash}.narinfo"; then
+          echo "Already built"
+          echo "cached=true" >> "$GITHUB_OUTPUT"
+        fi
+
+        api_url="${base_url}/api/v1"
+        pin_name="daily-${PKG}-$(uname -m)"
+        pins="$(curl "${api_url}/cache/xaltsc-c10y/pin")"
+        pin_path="$(echo "${pins}" | jq -r --arg pin "${pin_name}" '.[] | select( .name == $pin ) | .lastRevision.storePath')"
+
+        if [[ "${pin_path}" != "${path}" ]]; then
+          echo "Cache is not up to date."
+          echo "needs-pin=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Cache is up to date."
+        fi
+
+
+    - uses: cachix/cachix-action@v17
+      if: steps.check.outputs.cached != 'true' || steps.check.outputs.needs-pin == 'true'
+      with:
+        name: xaltsc-c10y
+        authToken: ${{ inputs.cachix-token }}
+
+    - name: Build the package, push it
+      if: steps.check.outputs.cached != 'true' || steps.check.outputs.needs-pin == 'true'
+      shell: bash
+      env:
+        PKG: ${{ inputs.package }}
+        CACHIX_AUTH_TOKEN: ${{ inputs.cachix-token }}
+      run: |
         nix build .#${PKG}
+        cachix push xaltsc-c10y result
+
+    - name: Pin store path
+      if: steps.check.outputs.needs-pin == 'true'
+      shell: bash
+      env:
+        PKG: ${{ inputs.package }}
+        CACHIX_AUTH_TOKEN: ${{ inputs.cachix-token }}
+      run: |
+        echo "Pinning daily result."
+        cachix pin xaltsc-c10y "daily-${PKG}-$(uname -m)" result --keep-days 3
+        if [[ "$(date +'%w')" == "1" ]]; then
+          echo "Pinning weekly result."
+          cachix pin xaltsc-c10y \
+                 "weekly-${PKG}-$(uname -m)" \
+                 result --keep-days 14
+        fi

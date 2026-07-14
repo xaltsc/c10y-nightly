@@ -1,0 +1,65 @@
+name: Build package
+
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        required: true
+      package:
+        type: string
+        required: true
+      tag:
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      cachix-token:
+        required: true
+
+jobs:
+  build-artifacts:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Increase swap
+        run: |
+          SWAPFILE=/newswapfile
+          sudo fallocate -l 10G $SWAPFILE
+          sudo chmod 600 $SWAPFILE
+          sudo mkswap $SWAPFILE
+          sudo swapon $SWAPFILE
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: ./.github/actions/build+cache
+        with:
+          package: "${{ inputs.package }}.cargoArtifacts"
+          cachix-token: '${{ secrets.cachix-token }}'
+
+  build:
+    needs: build-artifacts
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Increase swap
+        run: |
+          SWAPFILE=/newswapfile
+          sudo fallocate -l 30G $SWAPFILE
+          sudo chmod 600 $SWAPFILE
+          sudo mkswap $SWAPFILE
+          sudo swapon $SWAPFILE
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: ./.github/actions/build+cache
+        with:
+          package: "${{ inputs.package }}"
+          cachix-token: '${{ secrets.cachix-token }}'
+      - name: Weekly Tagging
+        if: inputs.tag
+        run: |
+          if [[ "$(date +'%w')" == "1" ]]; then
+            echo "Tagging current commit as weekly"
+            git tag weekly
+            git push origin weekly
+          fi
