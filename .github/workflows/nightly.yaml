@@ -101,17 +101,18 @@ jobs:
         with:
           cachix-token: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           package: "${{ matrix.package }}${{ matrix.suffix }}"
-      - name: Tagging weekly
+      - name: Tagging weekly and pinning
         env:
           PIN: "${{ matrix.package }}${{matrix.suffix}}"
           RUNNER: "${{ matrix.runner }}"
           CACHIX_AUTH_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         run: |
+          cachix push xaltsc-c10y result
+          cachix pin xaltsc-c10y "daily-${PIN}-$(uname -m)" result --keep-days 3
           if [[ "$(date +'%w')" == "1" ]]; then
             if [[ "${PIN}" == "default" && "${RUNNER}" == "ubuntu-latest" ]]; then
               git tag weekly
               git push origin weekly
             fi
-            cachix push xaltsc-c10y result
             cachix pin xaltsc-c10y "weekly-${PIN}-$(uname -m)" result --keep-days 14
           fi
