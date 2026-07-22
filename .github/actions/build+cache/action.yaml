@@ -7,6 +7,9 @@ inputs:
     required: true
   cachix-token:
     required: true
+  pin:
+    required: false
+    default: false
 
 
 runs:
@@ -21,6 +24,7 @@ runs:
       id: check
       shell: bash
       env:
+        DO_PIN: ${{ inputs.pin }}
         PKG: ${{ inputs.package }}
       run: |
         path="$(nix eval --raw ".#${PKG}.outPath")"
@@ -33,16 +37,18 @@ runs:
           echo "cached=true" >> "$GITHUB_OUTPUT"
         fi
 
-        api_url="${base_url}/api/v1"
-        pin_name="daily-${PKG}-$(uname -m)"
-        pins="$(curl "${api_url}/cache/xaltsc-c10y/pin")"
-        pin_path="$(echo "${pins}" | jq -r --arg pin "${pin_name}" '.[] | select( .name == $pin ) | .lastRevision.storePath')"
+        if [[ "${DO_PIN}" == "true" ]]; then
+          api_url="${base_url}/api/v1"
+          pin_name="daily-${PKG}-$(uname -m)"
+          pins="$(curl "${api_url}/cache/xaltsc-c10y/pin")"
+          pin_path="$(echo "${pins}" | jq -r --arg pin "${pin_name}" '.[] | select( .name == $pin ) | .lastRevision.storePath')"
 
-        if [[ "${pin_path}" != "${path}" ]]; then
-          echo "Cache is not up to date."
-          echo "needs-pin=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "Cache is up to date."
+          if [[ "${pin_path}" != "${path}" ]]; then
+            echo "Cache is not up to date."
+            echo "needs-pin=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Cache is up to date."
+          fi
         fi
 
 
@@ -70,10 +76,10 @@ runs:
         CACHIX_AUTH_TOKEN: ${{ inputs.cachix-token }}
       run: |
         echo "Pinning daily result."
-        cachix pin xaltsc-c10y "daily-${PKG}-$(uname -m)" result --keep-days 3
+        cachix pin xaltsc-c10y "daily-${PKG}-$(uname -m)" result --keep-revisions 1
         if [[ "$(date +'%w')" == "1" ]]; then
           echo "Pinning weekly result."
           cachix pin xaltsc-c10y \
                  "weekly-${PKG}-$(uname -m)" \
-                 result --keep-days 14
+                 result --keep-revisions 1
         fi

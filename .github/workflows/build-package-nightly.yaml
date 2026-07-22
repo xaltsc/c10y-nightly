@@ -55,6 +55,7 @@ jobs:
         with:
           package: "${{ inputs.package }}"
           cachix-token: '${{ secrets.cachix-token }}'
+          pin: true
       - name: Weekly Tagging
         if: inputs.tag
         run: |
