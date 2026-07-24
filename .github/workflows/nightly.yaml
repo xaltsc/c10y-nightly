@@ -23,7 +23,7 @@ jobs:
       - name: Update flake.lock
         uses: ./.github/actions/flake-update
         with:
-          inputs: "nixpkgs c10y flake-parts"
+          inputs: "nixpkgs c10y"
 
   build-rocksdb:
     needs: update-flake
