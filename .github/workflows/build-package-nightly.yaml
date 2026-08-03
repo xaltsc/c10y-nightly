@@ -61,6 +61,6 @@ jobs:
         run: |
           if [[ "$(date +'%w')" == "1" ]]; then
             echo "Tagging current commit as weekly"
-            git tag weekly
-            git push origin weekly
+            git tag -f weekly
+            git push -f origin weekly
           fi
