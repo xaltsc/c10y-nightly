@@ -29,11 +29,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1786494279,
-        "narHash": "sha256-qzN+dBxArdS7r7JL2eiMPU9mi2YYH2cEgkbwUzMAT6w=",
+        "lastModified": 1786541115,
+        "narHash": "sha256-K48+b0um8zcf0Awak+XhZWzGaV9M8qv1hZfkp0+BNf0=",
         "ref": "refs/heads/main",
-        "rev": "b4a8d2095e1a7a9eded82868028505218e8dc068",
-        "revCount": 7544,
+        "rev": "08d3d8445f3c7c23e1a779ed8555be56b1a95742",
+        "revCount": 7548,
         "type": "git",
         "url": "https://forgejo.ellis.link/continuwuation/continuwuity"
       },
