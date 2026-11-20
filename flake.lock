@@ -29,11 +29,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1795040806,
-        "narHash": "sha256-5O2tJilX2ESCCzsgw4FQ9Csxtm/6fX9tXPzZ6qSffoU=",
+        "lastModified": 1795113847,
+        "narHash": "sha256-UpqvAk96AJAI2NmzByeFnO85W4xCKD1lsY9dx4yKB+E=",
         "ref": "refs/heads/main",
-        "rev": "06c63e8de3cd2d7a9c1ca2a02716e3c0a908fb24",
-        "revCount": 8191,
+        "rev": "49207a42f8b18a03250fc0caa64308ec589dfdca",
+        "revCount": 8201,
         "type": "git",
         "url": "https://forgejo.ellis.link/continuwuation/continuwuity"
       },
@@ -116,11 +116,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1794890597,
-        "narHash": "sha256-lME2lHoDHAaSHP3/okgiVoJ0icVEvsQH8LeU3We7tcc=",
+        "lastModified": 1795085501,
+        "narHash": "sha256-S5keGWzaKpuXo9MNoIC2FfTIuTyTnx8P4NhYJMEsTLI=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "04906337b6d53e8bb0eaf0470ae9f070a4d4eb55",
+        "rev": "0bb8272318b4ca41bf0edc6224df3e3e3046b70d",
         "type": "github"
       },
       "original": {
